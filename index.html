@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIFF アプリ</title>
+    <script src="https://static.line-scdn.net/liff/edge/versions/2.22.0/sdk.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status.loading {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .user-info {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .user-info p {
+            margin: 10px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .user-info strong {
+            color: #333;
+            display: inline-block;
+            min-width: 100px;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LIFF アプリ</h1>
+        <div id="status" class="status loading">初期化中...</div>
+        <div id="userInfo" class="user-info hidden">
+            <p><strong>LINE ID:</strong> <span id="lineId">-</span></p>
+            <p><strong>表示名:</strong> <span id="displayName">-</span></p>
+        </div>
+        <button id="openFormButton" class="button hidden" onclick="openGoogleForm()">
+            フォームを開く
+        </button>
+    </div>
+
+    <script>
+        // LIFF ID
+        const liffId = '2008602363-A5oNdGgb';
+        
+        // Googleフォームの設定
+        const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSfc-Tp5JwOqLaqPBOzIh9EuIiAcOeP7Le9E01UlX5NKTIjrFA/viewform';
+        const entryId = 'entry.732602142';
+        
+        let lineUserId = '';
+        let displayName = '';
+
+        // LIFF初期化
+        async function initializeLiff() {
+            try {
+                await liff.init({ liffId: liffId });
+                
+                // ログイン状態を確認
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+
+                // プロフィール情報を取得
+                const profile = await liff.getProfile();
+                lineUserId = profile.userId;
+                displayName = profile.displayName;
+
+                // UIを更新
+                document.getElementById('lineId').textContent = lineUserId;
+                document.getElementById('displayName').textContent = displayName;
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('openFormButton').classList.remove('hidden');
+                
+                updateStatus('success', '初期化が完了しました');
+            } catch (error) {
+                console.error('LIFF初期化エラー:', error);
+                updateStatus('error', '初期化に失敗しました: ' + error.message);
+            }
+        }
+
+        // ステータス更新
+        function updateStatus(type, message) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = 'status ' + type;
+            statusEl.textContent = message;
+        }
+
+        // Googleフォームを開く
+        function openGoogleForm() {
+            if (!lineUserId) {
+                updateStatus('error', 'LINE IDが取得できていません');
+                return;
+            }
+
+            // GoogleフォームのURLにLINE IDをパラメータとして追加
+            const formUrlWithParams = `${googleFormUrl}?${entryId}=${encodeURIComponent(lineUserId)}`;
+            
+            // 新しいウィンドウで開く
+            window.open(formUrlWithParams, '_blank');
+            
+            updateStatus('success', 'フォームを開きました');
+        }
+
+        // ページ読み込み時にLIFFを初期化
+        window.addEventListener('load', initializeLiff);
+    </script>
+</body>
+</html>
+
