@@ -126,6 +126,9 @@
         <button id="openFormButton" class="button hidden" onclick="openGoogleForm()">
             フォームを開く
         </button>
+        <button id="sendMessageButton" class="button hidden" onclick="sendLineMessage()" style="background: linear-gradient(135deg, #00C300 0%, #00A000 100%);">
+            メッセージを送信
+        </button>
     </div>
 
     <script>
@@ -133,8 +136,14 @@
         const liffId = '2008602363-A5oNdGgb';
         
         // Googleフォームの設定
-        const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSfc-Tp5JwOqLaqPBOzIh9EuIiAcOeP7Le9E01UlX5NKTIjrFA/viewform';
-        const entryId = 'entry.732602142';
+        const googleFormUrl = 'https://docs.google.com/forms/d/e/1lLr8xUTc8glHUBJeC93wecrJxBA80YbybHePqcHR1bI/viewform';
+        
+        // Google Apps ScriptのURL（LINE ID保存用 - フォーム送信前にLINE IDを保存）
+        const lineIdSaveUrl = 'https://script.google.com/macros/s/AKfycbwByN4HZJVA_VK81F6e-o0UwEqGAUhWcXbKsP14-BFvgR9BaqD_fbL_O4GVCaHTyqGt/exec';
+        
+        // Google Apps ScriptのURL（メッセージ送信用）
+        // ⚠️ 実際のGoogle Apps ScriptのウェブアプリURLに置き換えてください
+        const googleAppsScriptUrl = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
         
         let lineUserId = '';
         let displayName = '';
@@ -160,6 +169,7 @@
                 document.getElementById('displayName').textContent = displayName;
                 document.getElementById('userInfo').classList.remove('hidden');
                 document.getElementById('openFormButton').classList.remove('hidden');
+                document.getElementById('sendMessageButton').classList.remove('hidden');
                 
                 updateStatus('success', '初期化が完了しました');
             } catch (error) {
@@ -175,20 +185,87 @@
             statusEl.textContent = message;
         }
 
-        // Googleフォームを開く
-        function openGoogleForm() {
+        // Googleフォームを開く（LINE IDは自動的に追加されます）
+        async function openGoogleForm() {
             if (!lineUserId) {
                 updateStatus('error', 'LINE IDが取得できていません');
                 return;
             }
 
-            // GoogleフォームのURLにLINE IDをパラメータとして追加
-            const formUrlWithParams = `${googleFormUrl}?${entryId}=${encodeURIComponent(lineUserId)}`;
+            // LINE IDを保存（フォーム送信時に自動的に追加されるように）
+            if (lineIdSaveUrl && lineIdSaveUrl !== 'YOUR_FORM_SUBMIT_TRIGGER_URL_HERE') {
+                try {
+                    const response = await fetch(lineIdSaveUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            lineId: lineUserId,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (!result.success) {
+                        console.error('LINE ID保存エラー:', result.error);
+                    }
+                } catch (error) {
+                    console.error('LINE ID保存エラー:', error);
+                    // エラーが発生してもフォームは開く
+                }
+            }
+
+            // Googleフォームを開く（LINE IDフィールドは不要）
+            window.open(googleFormUrl, '_blank');
             
-            // 新しいウィンドウで開く
-            window.open(formUrlWithParams, '_blank');
-            
-            updateStatus('success', 'フォームを開きました');
+            updateStatus('success', 'フォームを開きました。LINE IDは自動的に追加されます。');
+        }
+
+        // LINEメッセージを送信
+        async function sendLineMessage() {
+            if (!lineUserId) {
+                updateStatus('error', 'LINE IDが取得できていません');
+                return;
+            }
+
+            // Google Apps ScriptのURLが設定されているか確認
+            if (googleAppsScriptUrl === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+                updateStatus('error', 'Google Apps ScriptのURLが設定されていません');
+                return;
+            }
+
+            // 送信中の表示
+            const sendButton = document.getElementById('sendMessageButton');
+            sendButton.disabled = true;
+            updateStatus('loading', 'メッセージを送信中...');
+
+            try {
+                // Google Apps Scriptにリクエストを送信
+                const response = await fetch(googleAppsScriptUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: lineUserId,
+                        message: 'こんにちは！LIFFアプリからメッセージが届きました。'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    updateStatus('success', 'メッセージを送信しました！');
+                } else {
+                    updateStatus('error', 'メッセージの送信に失敗しました: ' + (result.error || '不明なエラー'));
+                }
+            } catch (error) {
+                console.error('メッセージ送信エラー:', error);
+                updateStatus('error', 'メッセージの送信に失敗しました: ' + error.message);
+            } finally {
+                sendButton.disabled = false;
+            }
         }
 
         // ページ読み込み時にLIFFを初期化
