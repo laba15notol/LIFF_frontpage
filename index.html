@@ -138,9 +138,8 @@
         
         // Googleフォームの設定
         const googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSdrBD8f0Vz3hVzkQgcrlza-OV-wh9U_NfUi497DWOHZKsMSuQ/viewform';
-        
-        // Google Apps ScriptのURL（LINE ID保存用 - フォーム送信前にLINE IDを保存）
-        const lineIdSaveUrl = 'https://script.google.com/macros/s/AKfycbwByN4HZJVA_VK81F6e-o0UwEqGAUhWcXbKsP14-BFvgR9BaqD_fbL_O4GVCaHTyqGt/exec';
+        // LINE IDを設定するエントリID
+        const entryId = 'entry.1821499318';
         
         let lineUserId = '';
         let displayName = '';
@@ -188,49 +187,18 @@
             statusEl.textContent = message;
         }
 
-        // Googleフォームを開く（LINE IDは自動的に追加されます）
-        async function openGoogleForm() {
+        // Googleフォームを開く（LINE IDをURLパラメータとして追加）
+        function openGoogleForm() {
             if (!lineUserId) {
                 updateStatus('error', 'LINE IDが取得できていません');
                 return;
             }
 
-            // LINE IDを保存（フォーム送信時に自動的に追加されるように）
-            if (lineIdSaveUrl && lineIdSaveUrl !== 'YOUR_FORM_SUBMIT_TRIGGER_URL_HERE') {
-                try {
-                    const response = await fetch(lineIdSaveUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            lineId: lineUserId,
-                            timestamp: new Date().toISOString()
-                        })
-                    });
-
-                    const result = await response.json();
-                    if (!result.success) {
-                        console.error('LINE ID保存エラー:', result.error);
-                    }
-                } catch (error) {
-                    console.error('LINE ID保存エラー:', error);
-                    // エラーが発生してもフォームは開く
-                }
-            }
-
-            // Googleフォームを開く（LINE IDフィールドは不要）
-            // LINEアプリ内ブラウザでは、liff.openWindow()を使用
-            if (typeof liff !== 'undefined' && liff.isInClient()) {
-                // LINEアプリ内の場合
-                liff.openWindow({
-                    url: googleFormUrl,
-                    external: true
-                });
-            } else {
-                // 通常のブラウザの場合
-                window.open(googleFormUrl, '_blank');
-            }
+            // GoogleフォームのURLにLINE IDをパラメータとして追加
+            const formUrlWithParams = `${googleFormUrl}?${entryId}=${encodeURIComponent(lineUserId)}`;
+            
+            // 同じタブで遷移する（新しいタブではなく）
+            window.location.href = formUrlWithParams;
             
             updateStatus('success', 'フォームを開きました。LINE IDは自動的に追加されます。');
         }
