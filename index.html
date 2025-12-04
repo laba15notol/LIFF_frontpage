@@ -142,10 +142,6 @@
         // Google Apps ScriptのURL（LINE ID保存用 - フォーム送信前にLINE IDを保存）
         const lineIdSaveUrl = 'https://script.google.com/macros/s/AKfycbwByN4HZJVA_VK81F6e-o0UwEqGAUhWcXbKsP14-BFvgR9BaqD_fbL_O4GVCaHTyqGt/exec';
         
-        // Google Apps ScriptのURL（メッセージ送信用）
-        // ⚠️ 実際のGoogle Apps ScriptのウェブアプリURLに置き換えてください
-        const googleAppsScriptUrl = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
-        
         let lineUserId = '';
         let displayName = '';
 
@@ -224,55 +220,19 @@
             }
 
             // Googleフォームを開く（LINE IDフィールドは不要）
-            window.open(googleFormUrl, '_blank');
+            // LINEアプリ内ブラウザでは、liff.openWindow()を使用
+            if (typeof liff !== 'undefined' && liff.isInClient()) {
+                // LINEアプリ内の場合
+                liff.openWindow({
+                    url: googleFormUrl,
+                    external: true
+                });
+            } else {
+                // 通常のブラウザの場合
+                window.open(googleFormUrl, '_blank');
+            }
             
             updateStatus('success', 'フォームを開きました。LINE IDは自動的に追加されます。');
-        }
-
-        // LINEメッセージを送信
-        async function sendLineMessage() {
-            if (!lineUserId) {
-                updateStatus('error', 'LINE IDが取得できていません');
-                return;
-            }
-
-            // Google Apps ScriptのURLが設定されているか確認
-            if (googleAppsScriptUrl === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
-                updateStatus('error', 'Google Apps ScriptのURLが設定されていません');
-                return;
-            }
-
-            // 送信中の表示
-            const sendButton = document.getElementById('sendMessageButton');
-            sendButton.disabled = true;
-            updateStatus('loading', 'メッセージを送信中...');
-
-            try {
-                // Google Apps Scriptにリクエストを送信
-                const response = await fetch(googleAppsScriptUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        userId: lineUserId,
-                        message: 'こんにちは！LIFFアプリからメッセージが届きました。'
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    updateStatus('success', 'メッセージを送信しました！');
-                } else {
-                    updateStatus('error', 'メッセージの送信に失敗しました: ' + (result.error || '不明なエラー'));
-                }
-            } catch (error) {
-                console.error('メッセージ送信エラー:', error);
-                updateStatus('error', 'メッセージの送信に失敗しました: ' + error.message);
-            } finally {
-                sendButton.disabled = false;
-            }
         }
 
         // ページ読み込み時にLIFFを初期化
