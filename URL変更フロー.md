@@ -95,3 +95,5 @@ git push origin main
 |------------|-----|
 | andmary03 | https://laba15notol.github.io/LIFF_frontpage/andmary03/ |
 | x7k9m2p4 | https://laba15notol.github.io/LIFF_frontpage/x7k9m2p4/ |
+| andmary04 | https://laba15notol.github.io/LIFF_frontpage/andmary04/ |
+| andmary05 | https://laba15notol.github.io/LIFF_frontpage/andmary05/ |
